@@ -1,13 +1,15 @@
 import nltk
 import re
 import string
-nltk.download('stopwords')
-nltk.download('punkt')
+# nltk.download('stopwords')
+# nltk.download('punkt')
+# import spacy.cli
+# spacy.cli.download("en_core_web_sm")
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import pandas as pd
 import spacy
-nlp = spacy.load('en_core_web_sm')
+nlp = spacy.load('en_core_web_sm') # using script python -m spacy download en
 
 # Gensim
 import gensim
@@ -16,12 +18,11 @@ from gensim.utils import simple_preprocess
 from gensim.models import CoherenceModel
 from pprint import pprint
 
-
 LDA_ALL_DATA_YEAR_PATH = './dags/services/data/lda_all_data_2015_2023.csv'
 ALl_RAW_DATA_PATH = './dags/services/data/new_data.csv'
 
 
-def process_input_lda(file_path=ALl_RAW_DATA_PATH): #Using raw title data
+def LDA(file_path=ALl_RAW_DATA_PATH,lda_file_path=LDA_ALL_DATA_YEAR_PATH,n=10,alpha=0.3,beta="auto"): #Using raw title data
     df = pd.read_csv(file_path)
     data_title = df.title.apply(lambda t : t.lower())
 
@@ -67,21 +68,21 @@ def process_input_lda(file_path=ALl_RAW_DATA_PATH): #Using raw title data
     # Term Document Frequency
     corpus = [id2word.doc2bow(text) for text in texts]
 
-    return corpus,id2word,tokenize_title
-
-#Using lda data update both all data and current year
-def lda_model_save_data(file_path,corpus,id2word,texts,n=10,alpha=0.3,beta="auto"): 
     #LDA model   
-    lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
+    #update_every=1,
+
+    #lda_model = gensim.models.ldamodel.LdaModel
+    lda_model = gensim.models.LdaMulticore(corpus=corpus,
                                             id2word=id2word,
                                             num_topics=n,
                                             random_state=100,
-                                            update_every=1,
                                             chunksize=100,
                                             passes=10,
                                             alpha=alpha,
                                             per_word_topics=True,
-                                            eta = beta)
+                                            eta = beta,
+                                            workers=8
+                                            )
     coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, dictionary=id2word, coherence='c_v')
     coherence_lda = coherence_model_lda.get_coherence()
     print('\nCoherence Score: ', coherence_lda)
@@ -96,14 +97,13 @@ def lda_model_save_data(file_path,corpus,id2word,texts,n=10,alpha=0.3,beta="auto
     df = pd.DataFrame(word_id_pairs, columns=['ID Group', 'Word'])
 
     # Save the DataFrame to a CSV file
-    df.to_csv(file_path,index=False)
-    print(f"Succesfully added new data!! to {file_path}")
+    df.to_csv(lda_file_path,index=False)
+    print(f"Succesfully added new data!! to {lda_file_path}")
     print(df.head(10))
     return word_id_pairs
 
 
 
 if __name__ == "__main__":
-    # corpus,id2word,tokenize_title = process_input_lda(ALl_RAW_DATA_PATH)
-    # lda_model_save_data(LDA_ALL_DATA_YEAR_PATH,corpus,id2word,tokenize_title)
     print()
+    LDA(file_path=ALl_RAW_DATA_PATH,n=10,alpha=0.3,beta="auto")

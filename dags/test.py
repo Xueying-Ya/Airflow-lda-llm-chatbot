@@ -11,12 +11,14 @@ import shutil
 import datetime as dt
 import json
 from services.model.pub_api import retrieve_new_articles
-from services.model.vector_store import create_vector_store,load_vector
-from services.model.lda_model import process_input_lda,lda_model_save_data
+from services.model.vector_store import create_vector_store,load_vector,process_lda_files_for_vector_store
+from services.model.lda_model import LDA
 from dotenv import load_dotenv
 
 load_dotenv('./config/.env')
 scopus_api_key = os.environ.get('SCOPUS_API_KEY')
+
+DATA_DIRECTORY = "./dags/services/data/"
 VECTOR_STORE_PATH  = "./dags/services/vector_store_folder"
 
 ALl_RAW_DATA_PATH = './dags/services/data/new_data.csv'
@@ -37,7 +39,6 @@ with open('./dags/services/sjr_data.json') as f:
     sjr_dic = json.load(f)
 
 
-
 def get_new_raw_data():
     new_data = retrieve_new_articles(query, sjr_dic, scopus_api_key, result_number=5)
     print(new_data)
@@ -50,7 +51,7 @@ def save_new_raw_data_to_all_file(data,file_path=ALl_RAW_DATA_PATH):
         print("Append data frame to CSV file")
     except Exception as e:
         print(e)
-    return df
+    return file_path
 
 def save_new_raw_data_to_current_year_file(data,file_path=CURRENT_YEAR_RAW_DATA_PATH):
     df = pd.DataFrame(data)
@@ -59,33 +60,33 @@ def save_new_raw_data_to_current_year_file(data,file_path=CURRENT_YEAR_RAW_DATA_
         print("Append data frame to CSV file")
     except Exception as e:
         print(e)
-    return df
+    return file_path
 
-def update_lda_data_to_all_file(LDA_ALL=LDA_ALL_DATA_YEAR_PATH ,RAW_ALL=ALl_RAW_DATA_PATH):
-    #ALl DATA
-    corpus,id2word,tokenize_title = process_input_lda(RAW_ALL) #process all raw data
-    result = lda_model_save_data(LDA_ALL,corpus,id2word,tokenize_title) #lda process
-    return result
+def LDA_analysis(raw_data_file_path,lda_file_path,lda_data_directory):
+    word_group = LDA(raw_data_file_path,lda_file_path)
+    texts = process_lda_files_for_vector_store(lda_data_directory,file_seperator="***********************")
+    return texts
 
-def update_lda_data_to_current_year_file(LDA_CURRENT_YEAR=LDA_CURRENT_YEAR_DATA_PATH,RAW_CURRENT_YEAR=CURRENT_YEAR_RAW_DATA_PATH):
-    #CURREN YEAR DATA
-    corpus,id2word,tokenize_title = process_input_lda(RAW_CURRENT_YEAR)
-    result = lda_model_save_data(LDA_CURRENT_YEAR,corpus,id2word,tokenize_title)
-    return result
+def current_year_LDA_analysis(raw_data_file_path,lda_file_path):
+    word_group = LDA(raw_data_file_path,lda_file_path)
+    return word_group
 
-def update_vector_store(VECTOR_STORE_PATH):
+def update_vector_store(lda_all_data,VECTOR_STORE_PATH):
     print(VECTOR_STORE_PATH)
     if not os.listdir(VECTOR_STORE_PATH):
         print("empty")
-        create_vector_store(VECTOR_STORE_PATH)
+        create_vector_store(lda_all_data,VECTOR_STORE_PATH)
     else:    
-        create_vector_store(VECTOR_STORE_PATH)
+        create_vector_store(lda_all_data,VECTOR_STORE_PATH)
+        #print("LDA ALL",lda_all_data)
 
 
-if __name__ == "__main__": 
-    #data = get_new_raw_data()
-    # save_new_raw_data_to_all_file(data) #add new data to all data csv [2015-present]
-    # save_new_raw_data_to_current_year_file(data) #add new data to cuurent year [2023]
-    lda_all_data = update_lda_data_to_all_file()
-    lda_current_data = update_lda_data_to_current_year_file()
-    update_vector_store(VECTOR_STORE_PATH)
+
+
+if __name__ == "__main__":
+    data = get_new_raw_data()
+    raw_data_file_path_all = save_new_raw_data_to_all_file(data) #add new data to all data csv [2015-present]
+    current_year_raw_data_file_path= save_new_raw_data_to_current_year_file(data) #add new data to cuurent year [2023]
+    lda_all_data = LDA_analysis(raw_data_file_path_all,LDA_ALL_DATA_YEAR_PATH,DATA_DIRECTORY)
+    lda_current_data = current_year_LDA_analysis(current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH)
+    update_vector_store(lda_all_data,VECTOR_STORE_PATH)

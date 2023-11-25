@@ -32,31 +32,45 @@ def process_lda_files_for_vector_store(directory_path=DATA_DIRECTORY,file_sepera
         content = pd.read_csv(file_path)
         content = " , ".join(content["Word"])
         combined_content += f"This is scopus topic keywords from {file_name}: {content.strip()}" + file_seperator  # Add filename and content with punctuation
-        print("Get all lda datata for vectoe db successfully!")
-    return combined_content
+    print("Get all lda datata for vectoe db successfully!")
 
-def process_data(data_directory=DATA_DIRECTORY,separators=FILE_SEPERATORS):
-    #process data
-    data = process_lda_files_for_vector_store(data_directory,separators) #make lda result in readable format for llm first
-    loader = Document(page_content=data , metadata={"source": "scopus_title"})
+        #process data
+        #data = process_lda_files_for_vector_store(data_directory,separators) #make lda result in readable format for llm first
+    loader = Document(page_content=combined_content , metadata={"source": "scopus_title"})
     docs = [loader.page_content]
     
     text_splitter = RecursiveCharacterTextSplitter(
     chunk_size = 512, #we can test this
     chunk_overlap  = 0,
     length_function = len,
-    separators = separators
+    separators =file_seperator
 )
     docs = text_splitter.create_documents(docs)
     texts = [doc.page_content for doc in docs if doc.page_content.strip("*") != '']
 
     return texts
 
+# def process_data(data_directory=DATA_DIRECTORY,separators=FILE_SEPERATORS):
+#     #process data
+#     data = process_lda_files_for_vector_store(data_directory,separators) #make lda result in readable format for llm first
+#     loader = Document(page_content=data , metadata={"source": "scopus_title"})
+#     docs = [loader.page_content]
+    
+#     text_splitter = RecursiveCharacterTextSplitter(
+#     chunk_size = 512, #we can test this
+#     chunk_overlap  = 0,
+#     length_function = len,
+#     separators = separators
+# )
+#     docs = text_splitter.create_documents(docs)
+#     texts = [doc.page_content for doc in docs if doc.page_content.strip("*") != '']
 
-def create_vector_store(vector_store_path=VECTOR_STORE_PATH) :   #(start_date,end_date,query,article_result_num,api_data,vector_store_path):
-    texts = process_data()
+#     return texts
+
+
+def create_vector_store(data,vector_store_path=VECTOR_STORE_PATH) :   #(start_date,end_date,query,article_result_num,api_data,vector_store_path):
     embeddings = CohereEmbeddings(model = "embed-multilingual-v2.0")
-    vector_store = FAISS.from_texts(texts, embeddings) #,metadatas=metadata)  #, location=":memory:",metadatas=metadata, distance_func="Dot")
+    vector_store = FAISS.from_texts(data, embeddings) #,metadatas=metadata)  #, location=":memory:",metadatas=metadata, distance_func="Dot")
     retriever=vector_store.as_retriever() # Use for search
     vector_store.save_local(vector_store_path)
     return retriever
@@ -88,6 +102,7 @@ if __name__ == "__main__":
     #print(update_data("abc","./vector_store"))
     # vector_store = load_vector("./dags/services/vector_store_folder")
     # print(search(vector_store,"a"))
-    print(glob.glob(os.path.join(DATA_DIRECTORY, 'lda*')))
+    print(process_lda_files_for_vector_store(directory_path=DATA_DIRECTORY,file_seperator=FILE_SEPERATORS))
+
 
 
