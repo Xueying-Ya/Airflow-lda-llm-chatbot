@@ -55,9 +55,8 @@ def data_sample_etl():
 
     @task()
     def get_new_raw_data():
-        #new_data = retrieve_new_articles(query, sjr_dic, scopus_api_key, result_number=5)
-        #print(new_data)
-        new_data =[{'publication_year': '2023',
+        """example data format :
+          new_data =[{'publication_year': '2023',
         'journal_name': 'Biomedicine and Pharmacotherapy',
         'title': 'The recent advances in cell delivery approaches, biochemical and engineering procedures of cell therapy applied to coronary heart disease',
         'cited_count': '0',
@@ -80,7 +79,9 @@ def data_sample_etl():
         'country': 'Spain',
         'university': 'Hospital del Mar',
         'author': 'Madrid-Gambin F.',
-        'tier': 'Q1'}]
+        'tier': 'Q1'}]"""
+        new_data = retrieve_new_articles(query, sjr_dic, scopus_api_key, result_number=5)
+        print(new_data)
         return new_data
     
     @task()
