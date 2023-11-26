@@ -12,7 +12,7 @@ import datetime as dt
 import json
 from services.model.pub_api import retrieve_new_articles
 from services.model.vector_store import create_vector_store,load_vector,process_lda_files_for_vector_store
-from services.model.lda_model import LDA
+from services.model.lda_model import LDA  #,LDA_current_year
 from dotenv import load_dotenv
 
 load_dotenv('./config/.env')
@@ -55,8 +55,32 @@ def data_sample_etl():
 
     @task()
     def get_new_raw_data():
-        new_data = retrieve_new_articles(query, sjr_dic, scopus_api_key, result_number=5)
-        print(new_data)
+        #new_data = retrieve_new_articles(query, sjr_dic, scopus_api_key, result_number=5)
+        #print(new_data)
+        new_data =[{'publication_year': '2023',
+        'journal_name': 'Biomedicine and Pharmacotherapy',
+        'title': 'The recent advances in cell delivery approaches, biochemical and engineering procedures of cell therapy applied to coronary heart disease',
+        'cited_count': '0',
+        'country': 'China',
+        'university': 'The Second Hospital of Jilin University',
+        'author': 'Ma J.',
+        'tier': 'Q1'},
+        {'publication_year': '2023',
+        'journal_name': 'Thin Solid Films',
+        'title': 'In-situ/operando characterization of FeO<inf>x</inf>-based chemiresistive sensor of acetone vapours by X-ray absorption spectroscopy',
+        'cited_count': '0',
+        'country': 'Slovakia',
+        'university': 'Institute of Physics Slovak Academy of Sciences',
+        'author': 'Ivančo J.',
+        'tier': 'Q2'},
+        {'publication_year': '2023',
+        'journal_name': 'Biomedicine and Pharmacotherapy',
+        'title': 'Present and future of metabolic and metabolomics studies focused on classical psychedelics in humans',
+        'cited_count': '0',
+        'country': 'Spain',
+        'university': 'Hospital del Mar',
+        'author': 'Madrid-Gambin F.',
+        'tier': 'Q1'}]
         return new_data
     
     @task()
@@ -79,22 +103,15 @@ def data_sample_etl():
             print(e)
         return file_path
     
-
-    # @task
-    # def LDA_analysis(raw_data_file_path,lda_file_path,lda_data_directory):
-    #     word_group = LDA(raw_data_file_path,lda_file_path)
-    #     texts = process_lda_files_for_vector_store(lda_data_directory,file_seperator="***********************")
-    #     return texts
-    # @task
-    # def current_year_LDA_analysis(raw_data_file_path,lda_file_path):
-    #     word_group = LDA(raw_data_file_path,lda_file_path)
-    #     return word_group
+    @task
+    def current_year_LDA_analysis(raw_data_file_path,lda_file_path):
+        word_group = LDA(raw_data_file_path,lda_file_path)
+        return word_group
 
     @task
-    def LDA_analysis(raw_data_file_path,lda_file_path,lda_data_directory,current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH):
-        word_group1 = LDA(raw_data_file_path,lda_file_path)
+    def LDA_analysis(raw_data_file_path,lda_file_path,lda_data_directory):
+        word_group = LDA(raw_data_file_path,lda_file_path)
         texts = process_lda_files_for_vector_store(lda_data_directory,file_seperator="***********************")
-        word_group2 = LDA(current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH)
         return texts
     
     @task()
@@ -109,11 +126,11 @@ def data_sample_etl():
     data = get_new_raw_data()
     raw_data_file_path_all = save_new_raw_data_to_all_file(data) #add new data to all data csv [2015-present]
     current_year_raw_data_file_path= save_new_raw_data_to_current_year_file(data) #add new data to cuurent year [2023]
-    lda_all_data = LDA_analysis(raw_data_file_path_all,LDA_ALL_DATA_YEAR_PATH,DATA_DIRECTORY,current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH)
-    # lda_all_data = LDA_analysis(raw_data_file_path_all,LDA_ALL_DATA_YEAR_PATH,DATA_DIRECTORY)
-    # lda_current_data = current_year_LDA_analysis(current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH)
+    lda_current_data = current_year_LDA_analysis(current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH)
+    lda_all_data = LDA_analysis(raw_data_file_path_all,LDA_ALL_DATA_YEAR_PATH,DATA_DIRECTORY)
     update_vector_store(lda_all_data,VECTOR_STORE_PATH)
 
+#incremental training
 
 data_sample_dag = data_sample_etl()
 
