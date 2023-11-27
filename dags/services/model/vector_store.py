@@ -15,6 +15,11 @@ from langchain.schema.document import Document
 from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.embeddings.cohere import CohereEmbeddings
+import logging
+import boto3
+from botocore.exceptions import ClientError
+import os
+from services.model.aws import upload_file_to_aws
 
 DATA_DIRECTORY = "./dags/services/data/"
 VECTOR_STORE_PATH = "./dags/services/vector_store_folder"
@@ -34,8 +39,6 @@ def process_lda_files_for_vector_store(directory_path=DATA_DIRECTORY,file_sepera
         combined_content += f"This is scopus topic keywords from {file_name}: {content.strip()}" + file_seperator  # Add filename and content with punctuation
     print("Get all lda datata for vectoe db successfully!")
 
-        #process data
-        #data = process_lda_files_for_vector_store(data_directory,separators) #make lda result in readable format for llm first
     loader = Document(page_content=combined_content , metadata={"source": "scopus_title"})
     docs = [loader.page_content]
     
@@ -50,29 +53,18 @@ def process_lda_files_for_vector_store(directory_path=DATA_DIRECTORY,file_sepera
 
     return texts
 
-# def process_data(data_directory=DATA_DIRECTORY,separators=FILE_SEPERATORS):
-#     #process data
-#     data = process_lda_files_for_vector_store(data_directory,separators) #make lda result in readable format for llm first
-#     loader = Document(page_content=data , metadata={"source": "scopus_title"})
-#     docs = [loader.page_content]
-    
-#     text_splitter = RecursiveCharacterTextSplitter(
-#     chunk_size = 512, #we can test this
-#     chunk_overlap  = 0,
-#     length_function = len,
-#     separators = separators
-# )
-#     docs = text_splitter.create_documents(docs)
-#     texts = [doc.page_content for doc in docs if doc.page_content.strip("*") != '']
 
-#     return texts
-
-
-def create_vector_store(data,vector_store_path=VECTOR_STORE_PATH) :   #(start_date,end_date,query,article_result_num,api_data,vector_store_path):
+def create_vector_store(data,vector_store_path=VECTOR_STORE_PATH) :   
     embeddings = CohereEmbeddings(model = "embed-multilingual-v2.0")
-    vector_store = FAISS.from_texts(data, embeddings) #,metadatas=metadata)  #, location=":memory:",metadatas=metadata, distance_func="Dot")
+    vector_store = FAISS.from_texts(data, embeddings) 
     retriever=vector_store.as_retriever() # Use for search
     vector_store.save_local(vector_store_path)
+    try:
+        upload_file_to_aws(file_name="./dags/services/vector_store_folder/index.faiss", bucket="ldallmairflow", object_name=None) #upload vector to aws
+        upload_file_to_aws(file_name="./dags/services/vector_store_folder/index.pkl", bucket="ldallmairflow", object_name=None) #upload vector to aws
+    except Exception as e:
+        print("e")
+        print("upload failed , please try again")
     return retriever
 
 
@@ -102,7 +94,7 @@ if __name__ == "__main__":
     #print(update_data("abc","./vector_store"))
     # vector_store = load_vector("./dags/services/vector_store_folder")
     # print(search(vector_store,"a"))
-    print(process_lda_files_for_vector_store(directory_path=DATA_DIRECTORY,file_seperator=FILE_SEPERATORS))
-
+    # print(process_lda_files_for_vector_store(directory_path=DATA_DIRECTORY,file_seperator=FILE_SEPERATORS))
+    print()
 
 

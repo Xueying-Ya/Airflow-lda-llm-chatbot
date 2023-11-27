@@ -21,8 +21,8 @@ scopus_api_key = os.environ.get('SCOPUS_API_KEY')
 DATA_DIRECTORY = "./dags/services/data/"
 VECTOR_STORE_PATH  = "./dags/services/vector_store_folder"
 
-ALl_RAW_DATA_PATH = './dags/services/data/new_data.csv'
-CURRENT_YEAR_RAW_DATA_PATH = './dags/services/data/new_data_2023.csv'
+ALl_RAW_DATA_PATH = './dags/services/data/all_raw_data_2015-2023.csv'
+CURRENT_YEAR_RAW_DATA_PATH = './dags/services/data/raw_data_2023.csv'
 
 LDA_ALL_DATA_YEAR_PATH = './dags/services/data/lda_all_data_2015_2023.csv'
 LDA_CURRENT_YEAR_DATA_PATH = './dags/services/data/lda_data_2023.csv'
@@ -41,7 +41,7 @@ with open('./dags/services/sjr_data.json') as f:
 default_args = {
     "owner" : "Ya",
     "retries" : 5,
-    "retry_delay" : timedelta(minutes=5)
+    "retry_delay" : timedelta(minutes=2)
 }
 
 @dag(dag_id='dag_with_taskflow',
@@ -116,7 +116,7 @@ def data_sample_etl():
         return texts
     
     @task()
-    def update_vector_store(lda_all_data,VECTOR_STORE_PATH):
+    def update_vector_store_locally_and_aws(lda_all_data,VECTOR_STORE_PATH):
         print(VECTOR_STORE_PATH)
         if not os.listdir(VECTOR_STORE_PATH):
             print("empty")
@@ -127,14 +127,11 @@ def data_sample_etl():
     data = get_new_raw_data()
     raw_data_file_path_all = save_new_raw_data_to_all_file(data) #add new data to all data csv [2015-present]
     current_year_raw_data_file_path= save_new_raw_data_to_current_year_file(data) #add new data to cuurent year [2023]
-    lda_current_data = current_year_LDA_analysis(current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH)
-    lda_all_data = LDA_analysis(raw_data_file_path_all,LDA_ALL_DATA_YEAR_PATH,DATA_DIRECTORY)
-    update_vector_store(lda_all_data,VECTOR_STORE_PATH)
-
-#incremental training
+    lda_current_data = current_year_LDA_analysis(current_year_raw_data_file_path,LDA_CURRENT_YEAR_DATA_PATH) # get lda result only 2023
+    lda_all_data = LDA_analysis(raw_data_file_path_all,LDA_ALL_DATA_YEAR_PATH,DATA_DIRECTORY) # get lda result 2015- updated 2023
+    update_vector_store_locally_and_aws(lda_all_data,VECTOR_STORE_PATH)
 
 data_sample_dag = data_sample_etl()
-
 
 if __name__ == "__main__":
     print(VECTOR_STORE_PATH)

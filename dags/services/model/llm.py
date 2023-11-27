@@ -68,4 +68,3 @@ def print_result(result,query):
 if __name__ == "__main__":
    vector_store = load_vector('./dags/services/vector_store_folder')
    print(llm_process_query('What is the main study or topic of title that are in scopus 2015-2013',vector_store))
-   #get answer from result field
