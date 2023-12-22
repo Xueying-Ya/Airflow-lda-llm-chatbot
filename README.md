@@ -6,4 +6,5 @@ This repository contains a code for Apache Airflow that serves [connecting Acade
 [![diagram.png](https://i.postimg.cc/1tRdBxzJ/diagram.png)](https://postimg.cc/d7XnQxry)
 
 
-[![Project presesntation link](https://www.youtube.com/watch?v=wCCoX4e-Cdk)
+[Project Presentation Link](https://www.youtube.com/watch?v=wCCoX4e-Cdk)
+
