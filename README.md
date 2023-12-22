@@ -3,7 +3,7 @@ Airflow Component
 Description
 This repository contains a code for Apache Airflow that serves [connecting Academic paper api [Scopus] to LLM and LDA].
 
-![Diagram](image_url)
+[![diagram.png](https://i.postimg.cc/1tRdBxzJ/diagram.png)](https://postimg.cc/d7XnQxry)
 
 
-[![Project presesntationl](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
+[![Project presesntation link](https://www.youtube.com/watch?v=wCCoX4e-Cdk)
